@@ -31,3 +31,9 @@
 - First launch emitted Mesa/EGL errors; a screenshot of the Tauri window itself could not be captured through the Codex desktop. The separate frontend rendered in the Codex browser at the Vite URL.
 - Follow-up: with `LIBGL_ALWAYS_SOFTWARE=1`, `WEBKIT_DISABLE_DMABUF_RENDERER=1`, and `GDK_BACKEND=x11`, WSLg created a Nomi 1280×800 window. Clippy passed after a one-line log-rotation conditional cleanup.
 - Clean Tauri exit was verified: after stopping the dev session, neither the executable nor its managed backend remained running. The forced port-collision case was not run. No tests were added or run, per user instruction. Phase 4 gate remains in progress pending the port-collision check and remaining packaging work.
+
+## Phase 5 — Linux Nuitka sidecar (in progress)
+
+- Added a pinned runtime/build dependency lock, Nuitka build requirements, and a Linux sidecar build script. The script derives the target triple from `rustc -vV` and emits `src-tauri/binaries/nomi-backend-<triple>`; generated sidecars are gitignored.
+- Build: Nuitka 4.2.2 compiled the backend with Python 3.14.4 to a 49 MiB Linux onefile binary. A clean-environment manual run (minimal PATH, no Python venv) passed `/health`, created/read a synthetic entry, and exited 0 through stdin `SHUTDOWN`. Cold readiness was 2.85 s; warm readiness was 2.74 s. A forced wrapper-kill check with stdin closed confirmed its worker stopped within 5 seconds. These measurements stay below the onefile fallback thresholds in D4.
+- Limitation: this binary was built on Ubuntu 26.04 in WSL; AppImage compatibility with Ubuntu 22.04/Debian 12 is not established. The Tauri production sidecar/resource wiring is still needed, and no tests were added or run per user instruction.
