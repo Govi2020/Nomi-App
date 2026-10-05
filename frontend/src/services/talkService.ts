@@ -1,3 +1,5 @@
+import { apiClient } from './apiClient'
+
 export interface TalkMessage {
   role: 'user' | 'assistant'
   content: string
@@ -14,22 +16,12 @@ export async function streamTalk(
   onEvent: (event: TalkEvent) => void,
   signal: AbortSignal,
 ) {
-  const response = await fetch('/api/talk/stream', {
+  const response = await apiClient.request('/api/talk/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify({ messages }),
     signal,
   })
-  if (!response.ok) {
-    let message = `Conversation failed (${response.status})`
-    try {
-      const body = await response.json() as { detail?: string }
-      if (body.detail) message = body.detail
-    } catch {
-      // Retain the HTTP status if the response isn't JSON.
-    }
-    throw new Error(message)
-  }
   if (!response.body) throw new Error('Streaming responses are not supported in this browser.')
 
   const reader = response.body.getReader()
