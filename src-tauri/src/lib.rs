@@ -321,12 +321,12 @@ fn spawn_backend(app: &AppHandle, port: u16, log_path: &Path) -> Result<(Child, 
     }
 
     let data_dir = if cfg!(debug_assertions) {
-        std::env::var_os("NOMI_DATA_DIR").map(PathBuf::from)
+        std::env::var_os("NOMI_DATA_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| root.join("data"))
     } else {
-        None
-    }
-    .map(Ok)
-    .unwrap_or_else(|| app.path().app_local_data_dir().map_err(|error| error.to_string()))?;
+        app.path().app_local_data_dir().map_err(|error| error.to_string())?
+    };
     let working_dir = if cfg!(debug_assertions) { root.clone() } else { data_dir.clone() };
     fs::create_dir_all(&data_dir).map_err(|error| format!("Could not create app data directory: {error}"))?;
     if let Some(parent) = log_path.parent() {

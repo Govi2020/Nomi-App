@@ -30,7 +30,7 @@
 - Verified manually against `/tmp/nomi-phase4-managed`: managed `/health` returned `status=ok` and the app instance ID; a synthetic title-only entry was created and read back from SQLite; killing the managed child caused the supervisor to start a new healthy child on the same port. `/api/health` reports Ollama unreachable, so model-backed features are not available in this WSL session until Ollama runs. Vite served the UI (HTTP 200).
 - First launch emitted Mesa/EGL errors; a screenshot of the Tauri window itself could not be captured through the Codex desktop. The separate frontend rendered in the Codex browser at the Vite URL.
 - Follow-up: with `LIBGL_ALWAYS_SOFTWARE=1`, `WEBKIT_DISABLE_DMABUF_RENDERER=1`, and `GDK_BACKEND=x11`, WSLg created a Nomi 1280×800 window. Clippy passed after a one-line log-rotation conditional cleanup.
-- Clean Tauri exit was verified: after stopping the dev session, neither the executable nor its managed backend remained running. The forced port-collision case was not run. No tests were added or run, per user instruction. Phase 4 remains open only for the port-collision check and Windows packaging coverage.
+- Manual Linux CP2 gate passed with isolated `build/` data: the first chosen port was held busy and the manager recovered on a new port; a synthetic entry created/read through that replacement backend; force-killing the exact Tauri parent PID caused its managed backend to exit within 5 seconds; normal Ctrl-C shutdown also left no app/backend process. No tests were added or run, per user instruction. Windows-specific process cleanup was not exercised in WSL.
 
 ## Phase 5 — Linux Nuitka sidecar (in progress)
 
