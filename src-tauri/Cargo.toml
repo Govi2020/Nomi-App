@@ -1,0 +1,21 @@
+[package]
+name = "nomi"
+version = "0.1.0"
+description = "Nomi private journal desktop application"
+authors = ["Nomi"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "nomi_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
