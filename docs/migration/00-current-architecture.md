@@ -2,6 +2,8 @@
 
 Recon date: 2026-10-05. Scope: source and configuration only. No files under `data/` were opened. The directory was empty when checked; a copy was made to `C:\Users\Govind\AppData\Local\Temp\Nomi-data-backup-20261005-044613` before reviewing paths.
 
+User's CP1 direction: permanent bundle identifier `com.nomi.desktop`; include Linux alongside Windows. Linux packaging is planned as AppImage + `.deb`, using Ubuntu 22.04/Debian 12 as a conservative starting baseline for Tauri's WebKitGTK 4.1 dependency. Nuitka installation is approved only inside project-local `.venv-build`.
+
 ## Current startup flow
 
 - `setup.ps1:12-26` locates Python 3.11+, then `:40-49` creates/reuses `.venv` and installs `backend/requirements.txt`. `:51-61` requires Node 22.12+ and runs `npm ci` in `frontend/`; `:64` creates `data/audio`, `data/media`, and `data/logs`; `:66-78` checks local Ollama and, when reachable, pulls `qwen2.5:3b` and `nomic-embed-text`. Models are currently hard-coded in this setup script, even though `backend/config.py` allows model environment overrides.
@@ -49,5 +51,6 @@ Recon date: 2026-10-05. Scope: source and configuration only. No files under `da
 ## Documentation consulted
 
 - [Tauri v2 Windows prerequisites](https://v2.tauri.app/start/prerequisites/) documents MSVC C++ Build Tools and WebView2 requirements.
+- [Tauri v2 Linux prerequisites](https://v2.tauri.app/start/prerequisites/) documents the WebKitGTK 4.1 and build dependencies; [Tauri Linux distributions](https://v2.tauri.app/distribute/) lists AppImage and Debian package formats.
 - [Nuitka user manual](https://nuitka.net/user-documentation/user-manual.html) lists supported Python versions and compiler requirements; as consulted on 2026-10-05, Python 3.14 is supported.
 - [Transformers.js environment](https://huggingface.co/docs/transformers.js/api/env) documents browser remote model loading; [Hugging Face model downloads](https://huggingface.co/docs/hub/models-downloading) documents CDN/storage redirects.

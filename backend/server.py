@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+import os
 import uuid
 from datetime import date
 from typing import Literal
@@ -9,17 +10,25 @@ from urllib.parse import quote
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from . import config, db, insights, mcp_client, ollama_client, organize, rag, timeline
 
 app = FastAPI(title="Private Journal Backend")
+_cors_origins = ["http://tauri.localhost", "https://tauri.localhost", "tauri://localhost"]
+if os.environ.get("NOMI_DEV") == "1":
+    _cors_origins.extend(["http://localhost:5173", "http://127.0.0.1:5173"])
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "Authorization"],
+)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["127.0.0.1", "localhost", "tauri.localhost"],
 )
 
 
@@ -94,6 +103,22 @@ TALK_NAME_QUERY = re.compile(r"\b(?:about|with|regarding)\s+([A-Za-z][A-Za-z'-]{
 @app.on_event("startup")
 def startup():
     db.init_db()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await mcp_client.reset()
+    await ollama_client.close()
+
+
+@app.get("/health")
+async def process_health():
+    return {
+        "status": "ok",
+        "service": "nomi-backend",
+        "version": config.APP_VERSION,
+        "instance": os.environ.get("NOMI_INSTANCE_ID", ""),
+    }
 
 
 def _audio_path(audio_id):

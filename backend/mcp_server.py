@@ -208,5 +208,9 @@ def journal_stats() -> list[TextContent]:
     )
 
 
-if __name__ == "__main__":
+def run_stdio():
     server.run(transport="stdio", log_level="ERROR")
+
+
+if __name__ == "__main__":
+    run_stdio()

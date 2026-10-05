@@ -19,11 +19,15 @@ class DiaryApiTests(unittest.TestCase):
         self.original_data_dir = config.DATA_DIR
         self.original_db_path = config.DB_PATH
         self.original_audio_dir = config.AUDIO_DIR
+        self.original_media_dir = config.MEDIA_DIR
+        self.original_log_dir = config.LOG_DIR
         config.DATA_DIR = Path(self.temp_dir.name)
         config.DB_PATH = config.DATA_DIR / "journal.db"
         config.AUDIO_DIR = config.DATA_DIR / "audio"
+        config.MEDIA_DIR = config.DATA_DIR / "media"
+        config.LOG_DIR = config.DATA_DIR / "logs"
         config.AUDIO_DIR.mkdir()
-        self.client_context = TestClient(app)
+        self.client_context = TestClient(app, base_url="http://127.0.0.1")
         self.client = self.client_context.__enter__()
 
     def tearDown(self):
@@ -31,7 +35,21 @@ class DiaryApiTests(unittest.TestCase):
         config.DATA_DIR = self.original_data_dir
         config.DB_PATH = self.original_db_path
         config.AUDIO_DIR = self.original_audio_dir
+        config.MEDIA_DIR = self.original_media_dir
+        config.LOG_DIR = self.original_log_dir
         self.temp_dir.cleanup()
+
+    def test_process_health_reports_instance_and_version(self):
+        with patch.dict("os.environ", {"NOMI_INSTANCE_ID": "test-instance", "NOMI_APP_VERSION": "test-version"}):
+            response = self.client.get("/health")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {
+            "status": "ok",
+            "service": "nomi-backend",
+            "version": config.APP_VERSION,
+            "instance": "test-instance",
+        })
 
     def test_entries_list_is_empty_without_saved_entries(self):
         response = self.client.get("/api/entries")

@@ -2,13 +2,18 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = Path(os.environ.get("JOURNAL_DATA_DIR", BASE_DIR / "data"))
+DATA_DIR = Path(os.environ.get("NOMI_DATA_DIR", os.environ.get("JOURNAL_DATA_DIR", BASE_DIR / "data")))
 DB_PATH = DATA_DIR / "journal.db"
 AUDIO_DIR = DATA_DIR / "audio"
 MEDIA_DIR = DATA_DIR / "media"
+LOG_DIR = DATA_DIR / "logs"
+
+HOST = os.environ.get("NOMI_HOST", "127.0.0.1")
+PORT = int(os.environ.get("NOMI_PORT", "8000"))
+APP_VERSION = os.environ.get("NOMI_APP_VERSION", "0.1.0")
 
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
-CHAT_MODEL = os.environ.get("CHAT_MODEL", "qwen2.5:7b")
+CHAT_MODEL = os.environ.get("CHAT_MODEL", "qwen2.5:3b")
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-embed-text")
 
 LINK_SIM_THRESHOLD = float(os.environ.get("LINK_SIM_THRESHOLD", "0.35"))
@@ -22,3 +27,4 @@ def ensure_dirs():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     AUDIO_DIR.mkdir(parents=True, exist_ok=True)
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)

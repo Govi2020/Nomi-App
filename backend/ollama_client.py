@@ -17,6 +17,13 @@ def _get_client():
     return _client
 
 
+async def close():
+    global _client
+    if _client is not None:
+        await _client.aclose()
+        _client = None
+
+
 async def ping():
     try:
         return (await _get_client().get("/api/tags")).status_code == 200

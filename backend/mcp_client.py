@@ -34,9 +34,15 @@ async def _ensure():
     async with _lock():
         if _state["session"] is not None:
             return _state["session"]
+        if os.environ.get("NOMI_MCP_SELF_SPAWN") == "1" or getattr(sys, "frozen", False) or "__compiled__" in globals():
+            command = sys.executable
+            args = ["--mcp-server"]
+        else:
+            command = sys.executable
+            args = ["-m", "backend.mcp_server"]
         params = StdioServerParameters(
-            command=sys.executable,
-            args=["-m", "backend.mcp_server"],
+            command=command,
+            args=args,
             cwd=str(config.BASE_DIR),
             env=dict(os.environ),
         )
