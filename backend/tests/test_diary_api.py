@@ -364,7 +364,7 @@ class DiaryApiTests(unittest.TestCase):
             [str(entry_ids[0]), str(entry_ids[1])],
         )
         self.assertIn("Do not diagnose", requests[0][0])
-        self.assertIn("at least two different entries", requests[0][0])
+        self.assertIn("two distinct entry citations", requests[0][0])
         self.assertTrue(requests[0][2])
         self.assertEqual(requests[0][3], 0.2)
 
