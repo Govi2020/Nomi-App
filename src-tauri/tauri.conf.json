@@ -29,6 +29,7 @@
   },
   "bundle": {
     "active": true,
+    "externalBin": ["binaries/nomi-backend"],
     "targets": ["nsis", "appimage", "deb"],
     "icon": ["icons/icon.png", "icons/icon.ico"],
     "windows": {

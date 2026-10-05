@@ -14,6 +14,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tauri::{AppHandle, Emitter, Manager, RunEvent, State};
+use tauri_plugin_shell::ShellExt;
 
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
 const POLL_INTERVAL: Duration = Duration::from_millis(200);
@@ -304,9 +305,6 @@ fn app_root() -> PathBuf {
 }
 
 fn spawn_backend(app: &AppHandle, port: u16, log_path: &Path) -> Result<(Child, ChildStdin, String), String> {
-    if !cfg!(debug_assertions) {
-        return Err("The packaged backend sidecar has not been configured yet.".into());
-    }
     let root = app_root();
     let python = if let Some(explicit) = std::env::var_os("NOMI_PYTHON") {
         PathBuf::from(explicit)
@@ -315,7 +313,7 @@ fn spawn_backend(app: &AppHandle, port: u16, log_path: &Path) -> Result<(Child, 
     } else {
         root.join(".venv/bin/python")
     };
-    if !python.is_file() {
+    if cfg!(debug_assertions) && !python.is_file() {
         return Err(format!(
             "Python environment not found at {}. Create the project .venv or set NOMI_PYTHON.",
             python.display()
@@ -329,6 +327,7 @@ fn spawn_backend(app: &AppHandle, port: u16, log_path: &Path) -> Result<(Child, 
     }
     .map(Ok)
     .unwrap_or_else(|| app.path().app_local_data_dir().map_err(|error| error.to_string()))?;
+    let working_dir = if cfg!(debug_assertions) { root.clone() } else { data_dir.clone() };
     fs::create_dir_all(&data_dir).map_err(|error| format!("Could not create app data directory: {error}"))?;
     if let Some(parent) = log_path.parent() {
         fs::create_dir_all(parent).map_err(|error| format!("Could not create app log directory: {error}"))?;
@@ -339,16 +338,27 @@ fn spawn_backend(app: &AppHandle, port: u16, log_path: &Path) -> Result<(Child, 
     let output_log = Arc::new(Mutex::new(output_log));
     let stamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos();
     let instance = format!("{}-{stamp}", std::process::id());
-    let mut command = Command::new(&python);
+    let port_text = port.to_string();
+    let mut command: Command = if cfg!(debug_assertions) {
+        let mut command = Command::new(&python);
+        command
+            .arg(root.join("backend/entry.py"))
+            .arg("--host")
+            .arg("127.0.0.1")
+            .arg("--port")
+            .arg(&port_text);
+        command
+    } else {
+        app.shell()
+            .sidecar("nomi-backend")
+            .map_err(|error| format!("Could not locate the bundled backend sidecar: {error}"))?
+            .args(["--host", "127.0.0.1", "--port", port_text.as_str()])
+            .into()
+    };
     command
-        .arg(root.join("backend/entry.py"))
-        .arg("--host")
-        .arg("127.0.0.1")
-        .arg("--port")
-        .arg(port.to_string())
-        .current_dir(&root)
+        .current_dir(working_dir)
         .env("NOMI_HOST", "127.0.0.1")
-        .env("NOMI_PORT", port.to_string())
+        .env("NOMI_PORT", &port_text)
         .env("NOMI_DATA_DIR", data_dir)
         .env("NOMI_INSTANCE_ID", &instance)
         .env("NOMI_APP_VERSION", app.package_info().version.to_string())
@@ -484,6 +494,7 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
+        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![get_backend_info, restart_backend, open_logs_folder])
         .setup(|app| {
