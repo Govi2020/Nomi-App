@@ -19,8 +19,14 @@
 - Build: local TypeScript project build and Vite production build passed. `frontend/dist` has no `.map` or `.env` files. The only literal loopback backend address outside `apiClient.ts` is the existing Vite development proxy target. `npm` was absent from this shell's PATH, so the equivalent local `tsc` and `vite` wrappers were invoked directly.
 - Gate status: Phase 2 build gate passed; no additional tests were added or run per the user's instruction. Large existing voice/model chunks continue to trigger Vite's size advisory.
 
-## Phase 3 — Tauri v2 shell (blocked at executable build)
+## Phase 3 — Tauri v2 shell (Linux executable build passed)
 
 - Done: added the root Tauri CLI package, v2 Rust shell/config/capability files, single-instance and opener plugins, a temporary external-backend `get_backend_info` stub, and generated app icons. The capability grants only Tauri core defaults; no webview shell or direct arbitrary file-open permission. The config targets per-user NSIS on Windows and AppImage/`.deb` on Linux under the selected permanent identifier.
-- Verified: `cargo check --offline` passed. The Tauri CLI reports v2.12.1 and `tauri info` recognized Rust, MSVC and WebView2. The UI's before-dev hook started Vite successfully. No tests were added or run.
-- Blocker: `tauri dev` and a subsequent Cargo executable build could not finish. Cargo first reported a missing upstream proc-macro artifact; after a clean of generated `src-tauri/target` output, Windows Application Control blocked Cargo's generated `quote`/`proc-macro2` build scripts (OS error 4551). Setting `CARGO_TARGET_DIR` to the writable Codex temp workspace produced the same block. The Tauri shell therefore has not launched, and the Phase 3 exit gate is NOT PASSED. Stop migration here per the two-attempt gate rule; Phase 4+ remain unstarted.
+- Verified: `cargo check` and `npm run tauri:dev` passed in Ubuntu 26.04 on WSL2 with Cargo online (git registry protocol; no `--offline`). Tauri CLI 2.12.1 compiled and launched the Linux executable; Vite returned HTTP 200. The Windows-native attempt remains blocked by Application Control (OS error 4551), so Linux is the active build environment. No tests were added or run.
+
+## Phase 4 — Managed backend lifecycle (in progress)
+
+- Implemented in the Tauri Rust shell: debug backend launch from the project venv, isolated data-dir and instance ID, loopback ephemeral port, health/instance validation, lifecycle events, bounded stdout/stderr log file, retry/backoff, restart command, logs-folder action, and shutdown signal with timeout/kill fallback. Release sidecar packaging remains unfinished.
+- Verified manually against `/tmp/nomi-phase4-managed`: managed `/health` returned `status=ok` and the app instance ID; a synthetic title-only entry was created and read back from SQLite; killing the managed child caused the supervisor to start a new healthy child on the same port. `/api/health` reports Ollama unreachable, so model-backed features are not available in this WSL session until Ollama runs. Vite served the UI (HTTP 200).
+- UI visibility is not verified: WSLg reported Mesa/EGL rendering errors in the app process, and the Codex desktop currently exposes no Linux app window for screenshot confirmation.
+- Clean Tauri exit was verified: after stopping the dev session, neither the executable nor its managed backend remained running. No tests were added or run, per user instruction. Phase 4 gate remains in progress pending desktop visibility and remaining packaging work.
