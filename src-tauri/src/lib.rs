@@ -384,10 +384,10 @@ fn pipe_output<R: Read + Send + 'static>(mut source: R, destination: Arc<Mutex<F
             };
             let mut file = lock(&destination);
             let current_size = file.metadata().map(|metadata| metadata.len()).unwrap_or(0);
-            if current_size.saturating_add(count as u64) > MAX_STDIO_LOG_BYTES {
-                if file.set_len(0).is_err() || file.seek(SeekFrom::Start(0)).is_err() {
-                    return;
-                }
+            if current_size.saturating_add(count as u64) > MAX_STDIO_LOG_BYTES
+                && (file.set_len(0).is_err() || file.seek(SeekFrom::Start(0)).is_err())
+            {
+                return;
             }
             if file.write_all(&buffer[..count]).is_err() {
                 return;
