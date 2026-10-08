@@ -79,3 +79,12 @@ Do not use `--offline` to work around registry failures.
 ## Data safety
 
 Production user data lives in the OS app-data directory. Debug defaults to repository `data/` for compatibility. Never inspect or use real `data/` for verification. Put synthetic smoke data under a new ignored `build/` subdirectory or `/tmp`; do not commit it. Existing browser settings and per-user WebView storage depend on the permanent identifier `com.nomi.desktop` and must remain stable.
+
+
+## Cross-platform build and maintenance utilities
+
+`npm run build:all` builds the backend sidecar and then the native Tauri bundle. It defaults to `nsis` on Windows and `deb` on Linux; set `NOMI_BUNDLES` to select another supported target. AppImage still needs an appropriately old Linux build host.
+
+`npm run clean` is a dry run. It lists only generated `build/backend`, `frontend/dist`, and `src-tauri/target` outputs. Pass `-- --execute` to remove those directories. It never targets `data/`, `.venv`, or `node_modules`.
+
+`npm run verify:package -- <path>` hashes a built artifact and checks Debian package layout without executing it. For data transfer, `python scripts/import-dev-data.py --source <dir> --destination <dir>` previews an explicit copy; `--apply` plus typing `IMPORT` is required to copy. The tool refuses an existing destination and does not open the database.

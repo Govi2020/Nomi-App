@@ -59,3 +59,10 @@
 - Added a persistent frontend readiness card: journaling remains usable when AI is unavailable; users can open the fixed official Ollama download page, recheck, or download missing configured models with progress. Rust handles the fixed external URL; the webview has no shell capability.
 - Verified: Python source compile check, `git diff --check`, frontend TypeScript/Vite production build, and Rust Clippy passed. Rebuilt the Linux Nuitka sidecar and Debian package after exact-tag model matching was added. Packaged release smoke with isolated XDG dirs and `OLLAMA_HOST=http://127.0.0.1:9`: `/health` 200, AI status without token 401, AI status with token 200 and `ollama_reachable=false`, and pull stream 200 with a parseable NDJSON error event. The managed app was closed afterwards and no model was downloaded. Final sidecar SHA-256 `359793bd8c9021f87c873096a4c0483b52cfb0cebc6930646bd3495169383af3`; final Debian package SHA-256 `f4c002209c4b17d3a7768149ce1ad11d01f0f436e6202498d3cb29bb56bdc92e` (57.81 MiB). Package layout includes `usr/bin/nomi` and `usr/bin/nomi-backend`.
 - Not done: actual WebView states and successful model pull. Ollama was unavailable in the isolated WSL check; no Ollama model was pulled. User requested no tests; none were added or run.
+
+
+## Phase 9 — Developer utilities and handoff (2026-10-09)
+
+- Added platform-aware build-all, safe dry-run cleanup, read-only package verification, and explicit dry-run/confirmed data-copy utility. See BUILD.md.
+- Utility syntax checks and existing Debian package structure/hash verification passed. Cleanup and data import were not executed. No test suites were added or run.
+- Platform and product verification gaps remain listed in TESTING.md; this phase does not imply overall app completion.
