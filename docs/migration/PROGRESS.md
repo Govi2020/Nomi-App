@@ -79,3 +79,11 @@
 
 - User has Ollama working on Windows. Read-only WSL checks showed NAT mode, localhost connection refused, and the host gateway connection timed out; no API connection established. Mirrored networking with localhost is the preferred private route; steps recorded in `MANUAL-STEPS.md`.
 - Windows `.exe` build could not be performed: `rustc.exe` is blocked by Application Control (OS error 4551), and `python` is an inaccessible Store alias. No installer was produced. Avoid the stale/diverged Windows checkout with its user changes; build from a clean checkout on a Windows host where required tools can execute.
+
+
+## Windows-hosted Ollama connected from WSL — 2026-10-09
+
+- Created the previously absent per-user `%UserProfile%\.wslconfig` with mirrored networking enabled, restarted WSL, and confirmed the default route changed to the mirrored interface.
+- From WSL, `http://127.0.0.1:11434/api/tags` returned HTTP 200 and included configured `qwen2.5:3b` and `nomic-embed-text` models. No model was pulled or changed.
+- Relaunched the Nomi release app with `OLLAMA_HOST=http://127.0.0.1:11434` and isolated XDG data directories. The shell inherited this variable for its backend.
+- Windows `.exe` remains blocked: Windows Application Control refuses `rustc.exe` (OS error 4551), and system Python resolves to an inaccessible Store alias. No installer or executable produced. Windows checkout remains stale/diverged with user modifications and must not be overwritten; use a clean/current Windows checkout once the toolchain policy issue is resolved.

@@ -91,3 +91,10 @@ Use a clean synthetic data directory and record PASS/FAIL/NOT RUN per item. Neve
 
 - WSL localhost `127.0.0.1:11434` did not connect; NAT gateway `172.29.16.1:11434` timed out. No Windows Ollama API connection was established. Mirrored-networking setup and a `curl /api/tags` recheck are documented in `MANUAL-STEPS.md`.
 - Windows `rustc --version` was blocked by Application Control (OS error 4551); Python resolved to an inaccessible Windows Store alias. No `.exe` was produced. The Windows working tree is stale/diverged and contains user changes, so it was not used for a build.
+
+
+## Windows Ollama connection result
+
+- Enabled per-user WSL mirrored networking, restarted WSL, then `curl http://127.0.0.1:11434/api/tags` from WSL returned HTTP 200 and confirmed `qwen2.5:3b` plus `nomic-embed-text` are available. No model was pulled.
+- Relaunched the release app with `OLLAMA_HOST=http://127.0.0.1:11434` and isolated XDG data. This proves API reachability and process configuration; a UI chat/RAG interaction is still NOT RUN.
+- The Windows executable remains NOT BUILT due to the previously observed Application Control block on rustc and inaccessible Python alias.

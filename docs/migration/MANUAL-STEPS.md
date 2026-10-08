@@ -13,7 +13,7 @@ The Phase 0 production frontend build passed using `npm run build`; Vite printed
 
 ## Connect WSL Nomi to Windows Ollama
 
-The current WSL network is NAT mode. In the observed session, Windows Ollama at WSL localhost refused the connection, and the default Windows host gateway `172.29.16.1:11434` timed out. Do not claim Ollama is connected yet.
+RESOLVED for this Windows host on 2026-10-09: mirrored networking is enabled in `%UserProfile%\.wslconfig`, WSL was restarted, and WSL `curl http://127.0.0.1:11434/api/tags` returned HTTP 200 with both configured models. Nomi was relaunched with `OLLAMA_HOST=http://127.0.0.1:11434`. The steps below are for reapplying or diagnosing this configuration later.
 
 Preferred setup on supported Windows 11 (22H2+): merge the following into `%UserProfile%\.wslconfig` without deleting any existing sections/settings:
 
@@ -26,7 +26,7 @@ Then run `wsl --shutdown` from PowerShell and reopen Ubuntu. From WSL, check `cu
 
 If mirrored mode is unavailable, Windows Ollama must listen on an address reachable from WSL and Windows Firewall should restrict inbound 11434 to the WSL virtual subnet. Avoid exposing the unauthenticated Ollama API to public or untrusted networks. Ollama documents `OLLAMA_HOST` as the bind-address setting at https://github.com/ollama/ollama/blob/main/docs/faq.mdx.
 
-## Windows installer build blocker (2026-10-09)
+## Windows installer build blocker (2026-10-09; still open)
 
 - The Windows checkout is stale/diverged and has user-owned modified and untracked files; do not run the full build from that checkout or overwrite files to synchronize it.
 - The current Windows host blocks `rustc.exe` under Application Control (OS error 4551). The `python` command resolves to an inaccessible Microsoft Store alias. No current Windows `.exe` was built.
