@@ -73,3 +73,9 @@
 - Root cause found in the app: no Tauri webview permission callback was registered. Wry reports Linux WebKitGTK `PermissionResponse::Default` as deny, so `getUserMedia` could be denied without a prompt.
 - Added a narrowly scoped microphone-only grant for Nomi's main webview and local app origins. Camera and other permission kinds remain default.
 - `cargo clippy -- -D warnings` and `cargo build --release` passed; rebuilt release app relaunched with isolated XDG data. Actual microphone capture still needs user click-through verification; WSLg may separately lack an available input source. No tests were run.
+
+
+## Windows Ollama and executable follow-up — 2026-10-09
+
+- User has Ollama working on Windows. Read-only WSL checks showed NAT mode, localhost connection refused, and the host gateway connection timed out; no API connection established. Mirrored networking with localhost is the preferred private route; steps recorded in `MANUAL-STEPS.md`.
+- Windows `.exe` build could not be performed: `rustc.exe` is blocked by Application Control (OS error 4551), and `python` is an inaccessible Store alias. No installer was produced. Avoid the stale/diverged Windows checkout with its user changes; build from a clean checkout on a Windows host where required tools can execute.

@@ -85,3 +85,9 @@ Use a clean synthetic data directory and record PASS/FAIL/NOT RUN per item. Neve
 - Added a Tauri permission callback that allows microphone requests only from Nomi's main webview and local app origins; all other permission types and origins retain the default behavior.
 - Linux `cargo clippy -- -D warnings` and `cargo build --release` passed after the change. Nomi was relaunched from the rebuilt binary.
 - Actual audio capture remains NOT RUN: this session has no `pactl` or `arecord` utility for source inspection. Click the microphone control in Diary or Talk and confirm capture starts. If access still fails, check Windows Settings → Privacy & security → Microphone and WSLg input device routing.
+
+
+## Windows Ollama connectivity and installer attempt
+
+- WSL localhost `127.0.0.1:11434` did not connect; NAT gateway `172.29.16.1:11434` timed out. No Windows Ollama API connection was established. Mirrored-networking setup and a `curl /api/tags` recheck are documented in `MANUAL-STEPS.md`.
+- Windows `rustc --version` was blocked by Application Control (OS error 4551); Python resolved to an inaccessible Windows Store alias. No `.exe` was produced. The Windows working tree is stale/diverged and contains user changes, so it was not used for a build.
