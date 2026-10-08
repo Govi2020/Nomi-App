@@ -29,5 +29,5 @@ If mirrored mode is unavailable, Windows Ollama must listen on an address reacha
 ## Windows installer build blocker (2026-10-09; still open)
 
 - The Windows checkout is stale/diverged and has user-owned modified and untracked files; do not run the full build from that checkout or overwrite files to synchronize it.
-- The current Windows host blocks `rustc.exe` under Application Control (OS error 4551). The `python` command resolves to an inaccessible Microsoft Store alias. No current Windows `.exe` was built.
+- The current Windows host blocks `rustc.exe` under Application Control (OS error 4551). The global `python` command resolves to an inaccessible Microsoft Store alias, but the project `.venv\Scripts\python.exe` runs Python 3.14.7. Rustc remains the blocking tool. No current Windows `.exe` was built.
 - Resume the Windows build on a Windows host where the approved Rust MSVC toolchain can execute and Python 3.11+ is available, using a clean/current checkout of the WSL source commit. Then run `npm run setup:dev` and `npm run build:all` (defaults to NSIS on Windows). Keep Nuitka's Windows sidecar build and the installer build on Windows.
