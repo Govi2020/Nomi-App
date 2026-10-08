@@ -97,4 +97,4 @@ Use a clean synthetic data directory and record PASS/FAIL/NOT RUN per item. Neve
 
 - Enabled per-user WSL mirrored networking, restarted WSL, then `curl http://127.0.0.1:11434/api/tags` from WSL returned HTTP 200 and confirmed `qwen2.5:3b` plus `nomic-embed-text` are available. No model was pulled.
 - Relaunched the release app with `OLLAMA_HOST=http://127.0.0.1:11434` and isolated XDG data. This proves API reachability and process configuration; a UI chat/RAG interaction is still NOT RUN.
-- The Windows executable remains NOT BUILT due to the previously observed Application Control block on rustc and inaccessible Python alias.
+- The Windows executable remains NOT BUILT due to the previously observed Application Control block on rustc and inaccessible global Python alias; the project venv Python 3.14.7 runs.
