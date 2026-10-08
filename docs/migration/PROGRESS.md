@@ -66,3 +66,10 @@
 - Added platform-aware build-all, safe dry-run cleanup, read-only package verification, and explicit dry-run/confirmed data-copy utility. See BUILD.md.
 - Utility syntax checks and existing Debian package structure/hash verification passed. Cleanup and data import were not executed. No test suites were added or run.
 - Platform and product verification gaps remain listed in TESTING.md; this phase does not imply overall app completion.
+
+
+## Microphone access follow-up — 2026-10-09
+
+- Root cause found in the app: no Tauri webview permission callback was registered. Wry reports Linux WebKitGTK `PermissionResponse::Default` as deny, so `getUserMedia` could be denied without a prompt.
+- Added a narrowly scoped microphone-only grant for Nomi's main webview and local app origins. Camera and other permission kinds remain default.
+- `cargo clippy -- -D warnings` and `cargo build --release` passed; rebuilt release app relaunched with isolated XDG data. Actual microphone capture still needs user click-through verification; WSLg may separately lack an available input source. No tests were run.

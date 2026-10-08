@@ -78,3 +78,10 @@ Use a clean synthetic data directory and record PASS/FAIL/NOT RUN per item. Neve
 - Node syntax checks passed for `build-all.mjs`, `clean.mjs`, and `verify-package.mjs`; Python bytecode compilation passed for `import-dev-data.py`.
 - Read-only package verification passed for the current Debian artifact: expected launcher and backend sidecar entries found; 60,616,492 bytes; SHA-256 `f4c002209c4b17d3a7768149ce1ad11d01f0f436e6202498d3cb29bb56bdc92e`.
 - The clean utility was not executed. The data import utility was not run against any data. No test suites were added or run.
+
+
+## Microphone permission follow-up
+
+- Added a Tauri permission callback that allows microphone requests only from Nomi's main webview and local app origins; all other permission types and origins retain the default behavior.
+- Linux `cargo clippy -- -D warnings` and `cargo build --release` passed after the change. Nomi was relaunched from the rebuilt binary.
+- Actual audio capture remains NOT RUN: this session has no `pactl` or `arecord` utility for source inspection. Click the microphone control in Diary or Talk and confirm capture starts. If access still fails, check Windows Settings → Privacy & security → Microphone and WSLg input device routing.

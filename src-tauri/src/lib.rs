@@ -13,7 +13,7 @@ use std::{
     thread,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use tauri::{AppHandle, Emitter, Manager, RunEvent, State};
+use tauri::{webview::{PermissionKind, PermissionResponse}, AppHandle, Emitter, Manager, RunEvent, State};
 use tauri_plugin_shell::ShellExt;
 
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
@@ -538,6 +538,20 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
+        .on_permission_request(|webview, kind| {
+            let is_nomi_origin = webview.url().is_ok_and(|url| {
+                (url.scheme() == "tauri" && url.host_str() == Some("localhost"))
+                    || (url.scheme() == "http"
+                        && url.host_str() == Some("localhost")
+                        && url.port() == Some(5173))
+                    || (url.scheme() == "https" && url.host_str() == Some("tauri.localhost"))
+            });
+            if webview.label() == "main" && is_nomi_origin && kind == PermissionKind::Microphone {
+                PermissionResponse::Allow
+            } else {
+                PermissionResponse::Default
+            }
+        })
         .invoke_handler(tauri::generate_handler![get_backend_info, restart_backend, open_logs_folder, open_ollama_download])
         .setup(|app| {
             let manager = app.state::<Arc<BackendManager>>().inner().clone();
