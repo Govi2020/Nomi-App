@@ -11,6 +11,7 @@ LOG_DIR = DATA_DIR / "logs"
 HOST = os.environ.get("NOMI_HOST", "127.0.0.1")
 PORT = int(os.environ.get("NOMI_PORT", "8000"))
 APP_VERSION = os.environ.get("NOMI_APP_VERSION", "0.1.0")
+API_TOKEN = os.environ.get("NOMI_API_TOKEN")
 
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434")
 CHAT_MODEL = os.environ.get("CHAT_MODEL", "qwen2.5:3b")

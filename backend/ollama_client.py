@@ -40,12 +40,29 @@ async def list_models():
         raise RuntimeError(f"Could not reach Ollama ({config.OLLAMA_HOST}). Is it running? ({exc})") from exc
 
 
+
+async def pull_model(name):
+    """Yield Ollama's newline-delimited pull progress without buffering the download."""
+    client = _get_client()
+    async with client.stream("POST", "/api/pull", json={"model": name, "stream": True}, timeout=None) as response:
+        if response.status_code >= 400:
+            detail = (await response.aread()).decode("utf-8", errors="replace")[:500]
+            raise RuntimeError(f"Ollama pull failed ({response.status_code}): {detail}")
+        async for line in response.aiter_lines():
+            if line:
+                yield line
+
 def _model_available(installed, name):
-    names = [item.get("name", "") if isinstance(item, dict) else str(item) for item in installed]
-    if name in names:
-        return True
-    base = name.split(":", 1)[0]
-    return any(candidate.split(":", 1)[0] == base for candidate in names)
+    def canonical(model_name):
+        model_name = model_name.strip()
+        return model_name if ":" in model_name else f"{model_name}:latest"
+
+    requested = canonical(name)
+    names = [
+        item.get("name", "") if isinstance(item, dict) else str(item)
+        for item in installed
+    ]
+    return any(canonical(candidate) == requested for candidate in names if candidate)
 
 
 def _raise_for_response(response, model=None):

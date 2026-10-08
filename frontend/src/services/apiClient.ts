@@ -5,6 +5,7 @@ export type BackendStatus = 'starting' | 'ready' | 'error' | 'crashed' | 'stoppe
 export interface BackendInfo {
   baseUrl: string
   status: BackendStatus
+  apiToken?: string
   error?: string
   logPath?: string
 }
@@ -14,6 +15,7 @@ type BackendState = { baseUrl: string; token?: string }
 
 const browserBaseUrl = import.meta.env.VITE_API_BASE_URL ?? ''
 const state: BackendState = { baseUrl: browserBaseUrl }
+const mediaObjectUrls = new Map<string, Promise<string>>()
 
 export const resolveApiUrl = (path: string) => `${state.baseUrl}${path}`
 
@@ -28,7 +30,8 @@ export async function initializeBackendRuntime(): Promise<BackendInfo> {
     return { baseUrl: browserBaseUrl, status: 'ready' }
   }
   const info = await getBackendInfo()
-  if (info.status === 'ready') state.baseUrl = info.baseUrl
+  state.baseUrl = info.status === 'ready' ? info.baseUrl : state.baseUrl
+  state.token = info.apiToken
   return info
 }
 
@@ -39,6 +42,7 @@ export async function subscribeBackendEvents(onChange: (info: BackendInfo) => vo
     listen<BackendEvent>('backend://ready', event => {
       void getBackendInfo().then(info => {
         state.baseUrl = info.baseUrl
+        state.token = info.apiToken
         onChange({ ...info, status: 'ready' })
       }).catch(error => onChange({ baseUrl: state.baseUrl, status: 'error', error: errorMessage(error) }))
     }),
@@ -64,6 +68,11 @@ export async function restartBackend(): Promise<void> {
 
 export async function openBackendLogs(): Promise<void> {
   if (isTauri()) await invoke('open_logs_folder')
+}
+
+export async function openOllamaDownload(): Promise<void> {
+  if (isTauri()) await invoke('open_ollama_download')
+  else window.open('https://ollama.com/download', '_blank', 'noopener,noreferrer')
 }
 
 function errorMessage(error: unknown): string {
@@ -105,4 +114,28 @@ export const apiClient = {
   async delete<T>(path: string): Promise<T> {
     return (await apiClient.request(path, { method: 'DELETE' })).json() as Promise<T>
   },
+  async mediaUrl(path: string): Promise<string> {
+    if (!isTauri() || !state.token) return resolveApiUrl(path)
+    const key = resolveApiUrl(path)
+    const cached = mediaObjectUrls.get(key)
+    if (cached) return cached
+
+    const objectUrl = apiClient.request(path)
+      .then(response => response.blob())
+      .then(blob => URL.createObjectURL(blob))
+    mediaObjectUrls.set(key, objectUrl)
+    try {
+      return await objectUrl
+    } catch (error) {
+      mediaObjectUrls.delete(key)
+      throw error
+    }
+  },
 }
+
+window.addEventListener('beforeunload', () => {
+  for (const objectUrl of mediaObjectUrls.values()) {
+    void objectUrl.then(url => URL.revokeObjectURL(url)).catch(() => undefined)
+  }
+  mediaObjectUrls.clear()
+})

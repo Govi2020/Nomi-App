@@ -14,6 +14,7 @@ import { TimelinePage } from './features/timeline/TimelinePage'
 import { SupportPage } from './features/support/SupportPage'
 import { TalkToMePage } from './features/talk/TalkToMePage'
 import { NavButton } from './components/navigation/NavButton'
+import { AiReadinessCard } from './components/AiReadinessCard'
 import { loadUserPreferences, type UserPreferences } from './services/userPreferences'
 import { colorThemes, getColorTheme, type ThemeId } from './theme'
 
@@ -304,6 +305,7 @@ export default function App() {
     </aside>
     {mobileNav && <button className="mobile-scrim" aria-label="Close navigation" onClick={() => setMobileNav(false)} />}
     <main ref={mainAreaRef} className="main-area"><header className="topbar"><div className="topbar-left"><button className="mobile-menu" onClick={() => setMobileNav(true)} aria-label="Open menu"><Menu size={20} /></button><span className="crumb-dot" /><span>{page === 'Home' ? 'A quieter way to remember' : page}</span></div><div className="topbar-right"><span className="date-today">{new Intl.DateTimeFormat('en', { weekday: 'long', month: 'long', day: 'numeric' }).format(now).toUpperCase()}</span><button className="help-button" aria-label="About Memory" onClick={() => setToast('Memory helps you capture moments and find them again.')}><CircleHelp size={17} /></button></div></header>
+      <AiReadinessCard />
       {page === 'Home' && <HomePage now={now} diary={diary} onNavigate={navigate} onNewEntry={() => { const date = new Intl.DateTimeFormat('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(new Date()); navigate('Diary'); setSelectedDiary({ id: 'new', date, title: '', content: '', mood: preferences.defaultMood, energy: preferences.defaultEnergy, topics: [], people: [], memoryIds: [] }) }} memories={memories} onOpenMemory={setSelectedMemory} onOpenDiary={entry => { navigate('Diary'); setSelectedDiary(entry) }} />}
       {page === 'Diary' && <DiaryPage diary={diary} selected={selectedDiary} onSelect={setSelectedDiary} onSave={saveDiaryEntry} loadError={diaryLoadError} defaultMood={preferences.defaultMood} defaultEnergy={preferences.defaultEnergy} spellCheck={preferences.spellCheck} editorTextSize={preferences.editorTextSize} onDelete={deleteDiaryEntry} />}
       {page === 'Talk to Me' && <TalkToMePage voiceReplies={preferences.voiceReplies} speechRate={preferences.speechRate} onVoiceRepliesChange={voiceReplies => updatePreferences({ voiceReplies })} />}

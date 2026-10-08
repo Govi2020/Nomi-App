@@ -2,6 +2,7 @@ import asyncio
 import json
 import re
 import os
+import secrets
 import uuid
 from datetime import date
 from typing import Literal
@@ -11,7 +12,7 @@ from urllib.parse import quote
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from . import config, db, insights, mcp_client, ollama_client, organize, rag, timeline
@@ -26,6 +27,30 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+
+class ApiTokenMiddleware:
+    def __init__(self, app, token: str | None):
+        self.app = app
+        self.expected = token.encode("ascii") if token else None
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and self.expected and scope["path"] != "/health" and scope["method"] != "OPTIONS":
+            headers = dict(scope.get("headers", []))
+            authorization = headers.get(b"authorization", b"")
+            scheme, separator, supplied = authorization.partition(b" ")
+            if (
+                not separator
+                or scheme.lower() != b"bearer"
+                or not secrets.compare_digest(supplied, self.expected)
+            ):
+                response = JSONResponse({"detail": "Unauthorized"}, status_code=401)
+                await response(scope, receive, send)
+                return
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(ApiTokenMiddleware, token=config.API_TOKEN)
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["127.0.0.1", "localhost", "tauri.localhost"],
@@ -130,6 +155,40 @@ def _audio_path(audio_id):
     if path.parent != config.AUDIO_DIR.resolve() or not path.is_file():
         raise HTTPException(status_code=404, detail="audio not found")
     return path
+
+
+class ModelPullRequest(BaseModel):
+    model: Literal["chat", "embedding"]
+
+
+@app.get("/api/ai/status")
+async def ai_status():
+    reachable = await ollama_client.ping()
+    models = await ollama_client.list_models() if reachable else []
+    chat_ok = ollama_client._model_available(models, config.CHAT_MODEL)
+    embed_ok = ollama_client._model_available(models, config.EMBED_MODEL)
+    return {
+        "ollama_reachable": reachable,
+        "chat_model": config.CHAT_MODEL,
+        "chat_model_installed": chat_ok,
+        "embedding_model": config.EMBED_MODEL,
+        "embedding_model_installed": embed_ok,
+        "ready": bool(reachable and chat_ok and embed_ok),
+    }
+
+
+@app.post("/api/ai/models/pull")
+async def pull_ai_model(body: ModelPullRequest):
+    model_name = config.CHAT_MODEL if body.model == "chat" else config.EMBED_MODEL
+
+    async def progress():
+        try:
+            async for line in ollama_client.pull_model(model_name):
+                yield line + "\n"
+        except Exception as exc:
+            yield json.dumps({"error": str(exc)}) + "\n"
+
+    return StreamingResponse(progress(), media_type="application/x-ndjson")
 
 
 @app.get("/api/health")

@@ -9025,3 +9025,25 @@ a:focus-visible,
     opacity: .65;
     cursor: progress;
 }
+/* Ollama first-run status; journal pages remain usable while local AI is unavailable. */
+.ai-setup-card {
+  margin: 16px 32px 0; padding: 18px 20px; display: flex; align-items: center;
+  justify-content: space-between; gap: 24px; border: 1px solid var(--border, #ffffff1c);
+  border-radius: 16px; background: var(--surface, #20231f); color: var(--text, #f1f1ed);
+}
+.ai-setup-copy { min-width: 0; }
+.ai-setup-ready { padding-block: 12px; }
+.ai-setup-ready .ai-setup-actions { margin-left: auto; }
+.ai-setup-kicker { color: var(--muted, #a7aaa1); font-size: 10px; letter-spacing: .14em; font-weight: 700; }
+.ai-setup-card h2 { margin: 5px 0; font-size: 16px; font-weight: 600; }
+.ai-setup-card p { margin: 0; color: var(--muted, #b7b9b1); font-size: 13px; line-height: 1.5; }
+.ai-setup-card .ai-setup-progress { margin-top: 7px; color: var(--text, #f1f1ed); }
+.ai-setup-card .ai-setup-error { margin-top: 7px; color: #ff9c91; }
+.ai-setup-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+.ai-setup-actions button { border: 1px solid var(--accent, #d6b789); border-radius: 999px; padding: 9px 14px; background: var(--accent, #d6b789); color: #171a16; font: inherit; font-size: 12px; cursor: pointer; }
+.ai-setup-actions button.ai-setup-secondary { border-color: var(--border, #ffffff26); background: transparent; color: var(--text, #f1f1ed); }
+.ai-setup-actions button:disabled { opacity: .6; cursor: wait; }
+@media (max-width: 760px) {
+  .ai-setup-card { margin: 12px 14px 0; align-items: flex-start; flex-direction: column; gap: 14px; }
+  .ai-setup-actions { justify-content: flex-start; }
+}

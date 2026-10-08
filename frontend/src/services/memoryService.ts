@@ -1,5 +1,5 @@
 import type { DiaryEntry, DiaryMedia, Memory } from '../types'
-import { apiClient, resolveApiUrl } from './apiClient'
+import { apiClient } from './apiClient'
 import { transcribePcm } from './localTranscriptionService'
 
 const memories: Memory[] = [
@@ -27,8 +27,12 @@ interface ApiDiaryEntry {
 const draftEntryIds = new Map<string, string>()
 let diarySaveQueue: Promise<void> = Promise.resolve()
 
-function fromApiDiaryEntry(entry: ApiDiaryEntry): DiaryEntry {
+async function fromApiDiaryEntry(entry: ApiDiaryEntry): Promise<DiaryEntry> {
   const createdAt = new Date(entry.created_at)
+  const media = await Promise.all((entry.media ?? []).map(async item => ({
+    ...item,
+    url: await apiClient.mediaUrl(item.url),
+  })))
   return {
     id: String(entry.id),
     date: new Intl.DateTimeFormat('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(createdAt),
@@ -41,7 +45,7 @@ function fromApiDiaryEntry(entry: ApiDiaryEntry): DiaryEntry {
     topics: entry.tags,
     people: entry.entities.map(entity => entity.name),
     memoryIds: [],
-    media: (entry.media ?? []).map(media => ({ ...media, url: resolveApiUrl(media.url) })),
+    media,
   }
 }
 
@@ -109,12 +113,15 @@ async function loadAllDiaryEntries() {
     if (page.length < limit) break
     offset += page.length
   }
-  return entries.map(fromApiDiaryEntry)
+  return Promise.all(entries.map(fromApiDiaryEntry))
 }
 
 export const memoryService = {
   uploadDiaryMedia(file: File) {
-    return apiClient.upload<DiaryMedia>('/api/media/upload', file).then(media => ({ ...media, url: resolveApiUrl(media.url) }))
+    return apiClient.upload<DiaryMedia>('/api/media/upload', file).then(async media => ({
+      ...media,
+      url: await apiClient.mediaUrl(media.url),
+    }))
   },
   async getMemories() { await delay(); return memories },
   async getMemory(id: string) { await delay(); return memories.find(item => item.id === id) ?? memories[0] },

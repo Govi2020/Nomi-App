@@ -28,6 +28,8 @@ struct BackendInfo {
     base_url: String,
     status: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    api_token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     log_path: Option<String>,
@@ -38,6 +40,7 @@ impl BackendInfo {
         Self {
             base_url,
             status: status.to_owned(),
+            api_token: None,
             error,
             log_path,
         }
@@ -52,24 +55,32 @@ struct ManagedBackend {
 struct BackendManager {
     info: Mutex<BackendInfo>,
     child: Mutex<ManagedBackend>,
+    api_token: Option<String>,
     generation: AtomicU64,
     stopping: AtomicBool,
 }
 
 impl Default for BackendManager {
     fn default() -> Self {
-        Self {
-            info: Mutex::new(BackendInfo::new(String::new(), "starting", None, None)),
-            child: Mutex::new(ManagedBackend { child: None, stdin: None }),
-            generation: AtomicU64::new(1),
-            stopping: AtomicBool::new(false),
-        }
+        Self::new(None)
     }
 }
 
 impl BackendManager {
+    fn new(api_token: Option<String>) -> Self {
+        Self {
+            info: Mutex::new(BackendInfo::new(String::new(), "starting", None, None)),
+            child: Mutex::new(ManagedBackend { child: None, stdin: None }),
+            api_token,
+            generation: AtomicU64::new(1),
+            stopping: AtomicBool::new(false),
+        }
+    }
+
     fn info(&self) -> BackendInfo {
-        lock(&self.info).clone()
+        let mut info = lock(&self.info).clone();
+        info.api_token = self.api_token.clone();
+        info
     }
 
     fn set_info(&self, next: BackendInfo) {
@@ -86,6 +97,17 @@ impl BackendManager {
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+fn generate_api_token() -> Result<String, String> {
+    let mut bytes = [0_u8; 32];
+    getrandom::fill(&mut bytes).map_err(|error| format!("Could not generate API token: {error}"))?;
+    let mut token = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        use std::fmt::Write as _;
+        write!(&mut token, "{byte:02x}").map_err(|error| error.to_string())?;
+    }
+    Ok(token)
 }
 
 #[tauri::command]
@@ -117,6 +139,13 @@ fn open_logs_folder(app: tauri::AppHandle) -> Result<(), String> {
     std::fs::create_dir_all(&path).map_err(|error| error.to_string())?;
     tauri_plugin_opener::OpenerExt::opener(&app)
         .open_path(path.to_string_lossy(), None::<&str>)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn open_ollama_download(app: tauri::AppHandle) -> Result<(), String> {
+    tauri_plugin_opener::OpenerExt::opener(&app)
+        .open_url("https://ollama.com/download", None::<&str>)
         .map_err(|error| error.to_string())
 }
 
@@ -182,7 +211,7 @@ fn manage_backend(app: AppHandle, manager: Arc<BackendManager>, generation: u64)
                     }
                 }
             };
-            match spawn_backend(&app, port, &log_path) {
+            match spawn_backend(&app, port, &log_path, manager.api_token.as_deref()) {
                 Ok((process, stdin, instance)) => {
                     *lock(&manager.child) = ManagedBackend { child: Some(process), stdin: Some(stdin) };
                     child = Some((port, instance));
@@ -279,7 +308,7 @@ fn manage_backend(app: AppHandle, manager: Arc<BackendManager>, generation: u64)
 
 fn set_and_emit(app: &AppHandle, manager: &BackendManager, event: &str, info: BackendInfo) {
     manager.set_info(info.clone());
-    let _ = app.emit(event, info);
+    let _ = app.emit(event, manager.info());
 }
 
 fn fail(app: &AppHandle, manager: &BackendManager, message: String, log_path: Option<PathBuf>) {
@@ -304,7 +333,12 @@ fn app_root() -> PathBuf {
     })
 }
 
-fn spawn_backend(app: &AppHandle, port: u16, log_path: &Path) -> Result<(Child, ChildStdin, String), String> {
+fn spawn_backend(
+    app: &AppHandle,
+    port: u16,
+    log_path: &Path,
+    api_token: Option<&str>,
+) -> Result<(Child, ChildStdin, String), String> {
     let root = app_root();
     let python = if let Some(explicit) = std::env::var_os("NOMI_PYTHON") {
         PathBuf::from(explicit)
@@ -365,6 +399,9 @@ fn spawn_backend(app: &AppHandle, port: u16, log_path: &Path) -> Result<(Child, 
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    if let Some(token) = api_token {
+        command.env("NOMI_API_TOKEN", token);
+    }
     if cfg!(debug_assertions) {
         command.env("NOMI_DEV", "1");
     }
@@ -486,7 +523,12 @@ fn on_exit(manager: &BackendManager) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let manager = Arc::new(BackendManager::default());
+    let api_token = if std::env::var_os("NOMI_EXTERNAL_BACKEND").is_some() {
+        None
+    } else {
+        Some(generate_api_token().expect("operating system random source unavailable"))
+    };
+    let manager = Arc::new(BackendManager::new(api_token));
     let app = tauri::Builder::default()
         .manage(manager)
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
@@ -496,7 +538,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![get_backend_info, restart_backend, open_logs_folder])
+        .invoke_handler(tauri::generate_handler![get_backend_info, restart_backend, open_logs_folder, open_ollama_download])
         .setup(|app| {
             let manager = app.state::<Arc<BackendManager>>().inner().clone();
             start_backend(app.handle().clone(), manager);

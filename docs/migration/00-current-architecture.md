@@ -54,3 +54,14 @@ User's CP1 direction: permanent bundle identifier `com.nomi.desktop`; include Li
 - [Tauri v2 Linux prerequisites](https://v2.tauri.app/start/prerequisites/) documents the WebKitGTK 4.1 and build dependencies; [Tauri Linux distributions](https://v2.tauri.app/distribute/) lists AppImage and Debian package formats.
 - [Nuitka user manual](https://nuitka.net/user-documentation/user-manual.html) lists supported Python versions and compiler requirements; as consulted on 2026-10-05, Python 3.14 is supported.
 - [Transformers.js environment](https://huggingface.co/docs/transformers.js/api/env) documents browser remote model loading; [Hugging Face model downloads](https://huggingface.co/docs/hub/models-downloading) documents CDN/storage redirects.
+
+## Desktop migration update (2026-10-08)
+
+This section records changes since the Phase 0 snapshot above; the source files remain authoritative.
+
+- Tauri v2 shell uses permanent identifier `com.nomi.desktop`; Rust owns the managed backend lifecycle and the frontend uses the narrow backend info/restart/log commands. The webview capability grants `core:default` only; the shell plugin is initialized for Rust-side sidecar management, without granting webview shell permission.
+- The managed backend binds to loopback on a dynamically selected port. `/health` reports process readiness independent of Ollama. Production uses a Nuitka one-file sidecar next to the Tauri executable. Debug uses the project virtual environment.
+- Tauri generates a fresh OS-random API bearer token each launch, passes it to the backend through `NOMI_API_TOKEN`, and the frontend sends it through the centralized API client. `/health` is unauthenticated; other HTTP routes require the token when configured. Browser development remains token-free unless `NOMI_API_TOKEN` is set.
+- `backend/config.py` now supports `NOMI_DATA_DIR`, retaining `JOURNAL_DATA_DIR` as a legacy fallback. Debug defaults to repository `data/`; release data belongs in the OS per-user app-data folder. Treat all real journal data as private and use a new synthetic directory for smoke checks.
+- `GET /api/ai/status` and `POST /api/ai/models/pull` provide token-protected Ollama/model readiness and NDJSON pull progress. The current UI offers Ollama installation guidance and model downloads; Ollama itself and its models remain external. The configured model tags must match exactly (`qwen2.5:3b`, `nomic-embed-text` normalized to `:latest`).
+- Phase 7 release API checks and the Phase 8 unavailable-Ollama stream check have passed in WSL. This is not a full application feature audit. Windows packaging, AppImage/Ubuntu 22.04 baseline, actual successful model pull, complete WebView feature matrix, and clean-machine lifecycle remain unverified. See `PROGRESS.md`, `TESTING.md`, and `MANUAL-STEPS.md`.
